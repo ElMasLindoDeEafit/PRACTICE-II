@@ -1,0 +1,1 @@
+[Entry (Vehicle {plate = "riw84g", entryTime = 2024-05-20 19:26:17.474717107 UTC}),Exit "eik784" 2024-05-20 19:26:37.333374616 UTC]
