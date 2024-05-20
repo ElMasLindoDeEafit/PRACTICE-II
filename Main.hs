@@ -4,23 +4,23 @@ import Data.List
 import Control.Exception
 
 -- Tipo alias para la placa del vehículo
-type Plate = String
+type Placa = String
 
 -- Tipo para representar un vehículo con su placa y tiempo de entrada
-data Vehicle = Vehicle { plate :: Plate, entryTime :: UTCTime } deriving (Show, Read)
+data Vehiculo = Vehiculo { placa :: Placa, horaEntrada :: UTCTime } deriving (Show, Read)
 
 -- Tipo para representar un registro de entrada o salida
-data Record = Entry Vehicle | Exit Plate UTCTime deriving (Show, Read)
+data Registro = Entrada Vehiculo | Salida Placa UTCTime deriving (Show, Read)
 
 -- Función principal: carga los registros y muestra el menú principal
 main :: IO ()
 main = do
-  vehicles <- loadVehicles "Parqueadero.txt" -- Cargar registros desde el archivo
-  menu vehicles -- Mostrar el menú principal
+  vehiculos <- cargarVehiculos "Parqueadero.txt" -- Cargar registros desde el archivo
+  menu vehiculos -- Mostrar el menú principal
 
 -- Función para mostrar el menú principal
-menu :: [Record] -> IO ()
-menu vehicles = do
+menu :: [Registro] -> IO ()
+menu vehiculos = do
   putStrLn "Sistema de Gestión de Estacionamiento"
   putStrLn "1. Registrar entrada de vehículo"
   putStrLn "2. Registrar salida de vehículo"
@@ -28,88 +28,88 @@ menu vehicles = do
   putStrLn "4. Listar vehículos"
   putStrLn "5. Salir"
   putStrLn "Seleccione una opción:"
-  option <- getLine
-  case option of
-    "1" -> checkIn vehicles
-    "2" -> checkOut vehicles
-    "3" -> searchVehicle vehicles
-    "4" -> listVehicles vehicles
-    "5" -> saveAndExit vehicles
-    _   -> putStrLn "Opción no válida" >> menu vehicles
+  opcion <- getLine
+  case opcion of
+    "1" -> registrarEntrada vehiculos
+    "2" -> registrarSalida vehiculos
+    "3" -> buscarVehiculo vehiculos
+    "4" -> listarVehiculos vehiculos
+    "5" -> guardarYSalir vehiculos
+    _   -> putStrLn "Opción no válida" >> menu vehiculos
 
 -- Función para registrar la entrada de un vehículo
-checkIn :: [Record] -> IO ()
-checkIn vehicles = do
+registrarEntrada :: [Registro] -> IO ()
+registrarEntrada vehiculos = do
   putStrLn "Ingrese la placa del vehículo:"
-  plateInput <- getLine
-  currentTime <- getCurrentTime -- Obtener la hora actual
+  placaInput <- getLine
+  horaActual <- getCurrentTime -- Obtener la hora actual
   if any (\r -> case r of
-                  Entry v -> plateInput == plate v -- Verificar si la placa ya está registrada
-                  _       -> False) vehicles
-    then putStrLn "El vehículo ya está registrado en el estacionamiento" >> menu vehicles
+                  Entrada v -> placaInput == placa v -- Verificar si la placa ya está registrada
+                  _       -> False) vehiculos
+    then putStrLn "El vehículo ya está registrado en el estacionamiento" >> menu vehiculos
     else do
-      let vehicle = Vehicle plateInput currentTime -- Crear un nuevo registro de vehículo
-      let updatedVehicles = vehicles ++ [Entry vehicle] -- Agregar el registro a la lista
+      let vehiculo = Vehiculo placaInput horaActual -- Crear un nuevo registro de vehículo
+      let vehiculosActualizados = vehiculos ++ [Entrada vehiculo] -- Agregar el registro a la lista
       putStrLn "Vehículo registrado exitosamente"
-      menu updatedVehicles -- Volver al menú principal
+      menu vehiculosActualizados -- Volver al menú principal
 
 -- Función para registrar la salida de un vehículo
-checkOut :: [Record] -> IO ()
-checkOut vehicles = do
+registrarSalida :: [Registro] -> IO ()
+registrarSalida vehiculos = do
   putStrLn "Ingrese la placa del vehículo:"
-  plateInput <- getLine
-  currentTime <- getCurrentTime -- Obtener la hora actual
-  let updatedVehicles = deleteByPlate plateInput vehicles -- Eliminar el registro de entrada
+  placaInput <- getLine
+  horaActual <- getCurrentTime -- Obtener la hora actual
+  let vehiculosActualizados = eliminarPorPlaca placaInput vehiculos -- Eliminar el registro de entrada
   case find (\r -> case r of
-                     Entry v -> plateInput == plate v -- Buscar el vehículo por su placa
-                     _       -> False) vehicles of
-    Just (Entry vehicle) -> do
-      let timeDiff = diffUTCTime currentTime (entryTime vehicle) -- Calcular el tiempo de permanencia
-      putStrLn $ "Tiempo en el estacionamiento: " ++ show timeDiff
-      menu (updatedVehicles ++ [Exit plateInput currentTime]) -- Registrar la salida y volver al menú
-    _ -> putStrLn "El vehículo no está en el estacionamiento" >> menu vehicles
+                     Entrada v -> placaInput == placa v -- Buscar el vehículo por su placa
+                     _       -> False) vehiculos of
+    Just (Entrada vehiculo) -> do
+      let diferenciaTiempo = diffUTCTime horaActual (horaEntrada vehiculo) -- Calcular el tiempo de permanencia
+      putStrLn $ "Tiempo en el estacionamiento: " ++ show diferenciaTiempo
+      menu (vehiculosActualizados ++ [Salida placaInput horaActual]) -- Registrar la salida y volver al menú
+    _ -> putStrLn "El vehículo no está en el estacionamiento" >> menu vehiculos
 
 -- Función para buscar un vehículo por su placa
-searchVehicle :: [Record] -> IO ()
-searchVehicle vehicles = do
+buscarVehiculo :: [Registro] -> IO ()
+buscarVehiculo vehiculos = do
   putStrLn "Ingrese la placa del vehículo:"
-  plateInput <- getLine
+  placaInput <- getLine
   case find (\r -> case r of
-                     Entry v -> plateInput == plate v -- Buscar el vehículo por su placa
-                     _       -> False) vehicles of
-    Just (Entry vehicle) -> do
-      putStrLn $ "Vehículo encontrado: " ++ show vehicle
-      menu vehicles -- Volver al menú principal
-    _ -> putStrLn "El vehículo no está en el estacionamiento" >> menu vehicles
+                     Entrada v -> placaInput == placa v -- Buscar el vehículo por su placa
+                     _       -> False) vehiculos of
+    Just (Entrada vehiculo) -> do
+      putStrLn $ "Vehículo encontrado: " ++ show vehiculo
+      menu vehiculos -- Volver al menú principal
+    _ -> putStrLn "El vehículo no está en el estacionamiento" >> menu vehiculos
 
 -- Función para listar todos los vehículos en el estacionamiento
-listVehicles :: [Record] -> IO ()
-listVehicles vehicles = do
+listarVehiculos :: [Registro] -> IO ()
+listarVehiculos vehiculos = do
   putStrLn "Lista de vehículos en el estacionamiento:"
-  mapM_ print [v | Entry v <- vehicles] -- Imprimir todos los registros de entrada
-  menu vehicles -- Volver al menú principal
+  mapM_ print [v | Entrada v <- vehiculos] -- Imprimir todos los registros de entrada
+  menu vehiculos -- Volver al menú principal
 
 -- Función para guardar los registros y salir del programa
-saveAndExit :: [Record] -> IO ()
-saveAndExit vehicles = do
-  saveVehicles "Parqueadero.txt" vehicles -- Guardar los registros en el archivo
+guardarYSalir :: [Registro] -> IO ()
+guardarYSalir vehiculos = do
+  guardarVehiculos "Parqueadero.txt" vehiculos -- Guardar los registros en el archivo
   putStrLn "Guardando y saliendo..."
   return ()
 
 -- Función para cargar los registros desde un archivo
-loadVehicles :: FilePath -> IO [Record]
-loadVehicles path = do
-  catch (read <$> readFile path) handleError -- Leer los registros del archivo
+cargarVehiculos :: FilePath -> IO [Registro]
+cargarVehiculos ruta = do
+  catch (read <$> readFile ruta) manejarError -- Leer los registros del archivo
   where
-    handleError :: IOError -> IO [Record]
-    handleError _ = return [] -- Manejar errores y devolver una lista vacía
+    manejarError :: IOError -> IO [Registro]
+    manejarError _ = return [] -- Manejar errores y devolver una lista vacía
 
 -- Función para guardar los registros en un archivo
-saveVehicles :: FilePath -> [Record] -> IO ()
-saveVehicles path vehicles = writeFile path (show vehicles) -- Guardar los registros en el archivo
+guardarVehiculos :: FilePath -> [Registro] -> IO ()
+guardarVehiculos ruta vehiculos = writeFile ruta (show vehiculos) -- Guardar los registros en el archivo
 
 -- Función auxiliar para eliminar un registro de entrada por la placa
-deleteByPlate :: Plate -> [Record] -> [Record]
-deleteByPlate plateInput = filter (\r -> case r of
-                                           Entry v -> plateInput /= plate v -- Filtrar el registro por la placa
+eliminarPorPlaca :: Placa -> [Registro] -> [Registro]
+eliminarPorPlaca placaInput = filter (\r -> case r of
+                                           Entrada v -> placaInput /= placa v -- Filtrar el registro por la placa
                                            _       -> True)
